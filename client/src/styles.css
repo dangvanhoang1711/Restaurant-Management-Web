@@ -286,6 +286,132 @@ footer a:hover {
   background: #aaa;
 }
 
+/* === PRINT STYLES === */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printArea,
+  #printArea * {
+    visibility: visible;
+  }
+  #printArea {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    display: block !important;
+  }
+
+  #receipt {
+    width: 80mm;
+    margin: 0 auto;
+    padding: 10px 6px;
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #000;
+    background: #fff;
+  }
+
+  .receipt-header {
+    text-align: center;
+    margin-bottom: 6px;
+  }
+
+  .shop-name {
+    font-size: 18px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+
+  .shop-info {
+    font-size: 10px;
+    color: #333;
+    line-height: 1.4;
+  }
+
+  .receipt-title {
+    text-align: center;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    padding: 4px 0;
+  }
+
+  .receipt-divider {
+    border-top: 1px dashed #333;
+    margin: 6px 0;
+  }
+
+  .info-table {
+    width: 100%;
+    font-size: 11px;
+    border-collapse: collapse;
+  }
+
+  .info-table .label {
+    font-weight: 600;
+    white-space: nowrap;
+    vertical-align: top;
+    padding: 1px 4px 1px 0;
+    width: 95px;
+  }
+
+  .info-table .value {
+    padding: 1px 0;
+  }
+
+  .items-table {
+    width: 100%;
+    font-size: 11px;
+    border-collapse: collapse;
+  }
+
+  .items-table th {
+    border-bottom: 1px solid #333;
+    padding: 4px 2px;
+    font-size: 10px;
+    text-transform: uppercase;
+  }
+
+  .items-table td {
+    padding: 3px 2px;
+    border-bottom: 1px dotted #ccc;
+  }
+
+  .receipt-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    font-size: 15px;
+    font-weight: bold;
+  }
+
+  .total-value {
+    font-size: 17px;
+  }
+
+  .receipt-footer {
+    text-align: center;
+    font-size: 11px;
+    font-style: italic;
+    padding-top: 6px;
+  }
+
+  .receipt-footer p {
+    margin: 2px 0;
+  }
+
+  @page {
+    margin: 0;
+    size: 80mm auto;
+  }
+}
+
 @media (max-width: 768px) {
   .sidebar {
     width: 60px;

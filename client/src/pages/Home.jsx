@@ -44,9 +44,14 @@ export default function Home() {
       .then(j => { if (j.success) setAllItems(j.data); });
   }, []);
 
-  const items = allItems
-    .filter(i => i.category !== 'topping')
-    .filter(i => category === 'all' || i.category === category)
+  const foodItems = allItems
+    .filter(i => i.category !== 'topping' && i.category !== 'douong')
+    .filter(i => category === 'all' || category === 'douong' || i.category === category)
+    .filter(i => !search || i.name.toLowerCase().includes(search.toLowerCase()));
+
+  const drinkItems = allItems
+    .filter(i => i.category === 'douong')
+    .filter(i => category === 'all' || category === 'douong')
     .filter(i => !search || i.name.toLowerCase().includes(search.toLowerCase()));
 
   const featured = allItems.filter(i => i.category !== 'topping').slice(0, 4);
@@ -54,6 +59,7 @@ export default function Home() {
   function openDetail(item) {
     setSelectedItem(item);
     setDetailQty(1);
+    document.querySelectorAll('.topping-cb').forEach(cb => cb.checked = false);
     fetch(`${API}/menu/${item.id}/toppings`)
       .then(r => r.json())
       .then(j => {
@@ -152,11 +158,13 @@ export default function Home() {
         `;
 
         if (paymentMethod === 'transfer') {
-          const qrUrl = 'https://img.vietqr.io/image/VCB-1024580716-compact2.jpg?amount=' + j.data.total + '&addInfo=' + orderCode + '&accountName=DANG%20VAN%20HOANG';
-          document.getElementById('qrImage').src = qrUrl;
-          document.getElementById('qrAmount').textContent = fmtPrice(total);
-          document.getElementById('qrContent').textContent = orderCode;
-          document.getElementById('paymentQR').style.display = 'block';
+          try {
+            const qrUrl = 'https://img.vietqr.io/image/VCB-1024580716-compact2.jpg?amount=' + j.data.total + '&addInfo=' + orderCode + '&accountName=DANG%20VAN%20HOANG';
+            document.getElementById('qrImage').src = qrUrl;
+            document.getElementById('qrAmount').textContent = fmtPrice(total);
+            document.getElementById('qrContent').textContent = orderCode;
+            document.getElementById('paymentQR').style.display = 'block';
+          } catch { /* ignore QR error */ }
         } else {
           document.getElementById('paymentQR').style.display = 'none';
         }
@@ -218,7 +226,33 @@ export default function Home() {
         {featured.length > 0 && category === 'all' && !search && (
           <FeaturedItems featured={featured} onItemClick={openDetail} />
         )}
-        <MenuGrid items={items} category={category} onItemClick={openDetail} />
+        {foodItems.length > 0 && (
+          <MenuGrid items={foodItems} category={category === 'douong' ? 'all' : category} onItemClick={openDetail} />
+        )}
+        {(category === 'all' || category === 'douong') && drinkItems.length > 0 && (
+          <div className="mt-4">
+            <h5 className="fw-bold mb-3">🥤 Đồ uống</h5>
+            <div className="row g-3">
+              {drinkItems.map(item => (
+                <div className="col-lg-3 col-md-4 col-6" key={item.id}>
+                  <div className="card border-0 shadow-sm h-100 menu-card" onClick={() => openDetail(item)} style={{cursor:'pointer'}}>
+                    <div className="rounded-top" style={{background: item.image_bg, height: 120}} />
+                    <div className="card-body d-flex flex-column">
+                      <h6 className="card-title fw-bold mb-1">{item.name}</h6>
+                      <p className="card-text text-muted small flex-grow-1">{item.description}</p>
+                      <div className="d-flex justify-content-between align-items-center mt-auto">
+                        <span className="fs-5 fw-bold text-brand">{fmtPrice(item.price)}</span>
+                        <button className="btn btn-sm btn-brand rounded-pill" onClick={e => { e.stopPropagation(); openDetail(item); }}>
+                          <i className="bi bi-plus-lg"></i> Thêm
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       <CustomerFooter />
       <CartOffcanvas cartOffcanvasRef={cartOffcanvasRef} cart={cart} updateQty={updateQty} removeFromCart={removeFromCart} cartTotal={cartTotal} openCheckout={openCheckout} />

@@ -9,6 +9,7 @@ export default function OrdersTab() {
   const [total, setTotal] = useState(0);
   const [pageSize, setPageSize] = useState(20);
   const [detail, setDetail] = useState(null);
+  const [settings, setSettings] = useState(null);
 
   function getHeaders() {
     const t = localStorage.getItem('admin_token');
@@ -21,6 +22,10 @@ export default function OrdersTab() {
     if (search) url += `&search=${encodeURIComponent(search)}`;
     fetch(url, { headers: getHeaders() }).then(r => r.json()).then(j => { if (j.success) { setOrders(j.data || []); setTotal(j.total || 0); } });
   }
+
+  useEffect(() => {
+    fetch(`${API}/settings`).then(r => r.json()).then(j => { if (j.success) setSettings(j.data); });
+  }, []);
 
   useEffect(() => {
     load();
@@ -68,8 +73,97 @@ export default function OrdersTab() {
     if (!detail) return;
     const el = document.getElementById('printArea');
     if (!el) return;
-    const items = detail.items?.map(i => `<tr><td>${i.item_name}</td><td>${i.quantity}</td><td class="text-end">${fmtPrice(i.item_price)}</td><td class="text-end">${fmtPrice(i.item_price * i.quantity)}</td></tr>`).join('');
-    el.innerHTML = `<div class="container py-3"><h5 class="text-center">Châu Loan</h5><p class="text-center small">123 Nguyễn Huệ, Q.1<br>0123 456 789</p><hr><p><strong>Mã ĐH:</strong> #${detail.order_code}</p><p><strong>Khách:</strong> ${detail.customer_name} - ${detail.customer_phone}</p><p><strong>Ngày:</strong> ${new Date(detail.created_at).toLocaleString('vi-VN')}</p><table class="table table-sm"><thead><tr><th>Món</th><th>SL</th><th>ĐG</th><th>TT</th></tr></thead><tbody>${items}</tbody></table><hr><h6 class="text-end">Tổng: ${fmtPrice(detail.total)}</h6></div>`;
+
+    const s = {
+      shop_name: 'CỬA HÀNG',
+      shop_address: '',
+      shop_phone: '',
+      shop_email: '',
+      shop_hours: '',
+      ...(settings || {}),
+    };
+
+    const items = detail.items?.map(i =>
+      `<tr>
+        <td style="text-align:center">${i.quantity}</td>
+        <td>${i.item_name}</td>
+        <td style="text-align:right">${fmtPrice(i.item_price)}</td>
+        <td style="text-align:right">${fmtPrice(i.item_price * i.quantity)}</td>
+      </tr>`
+    ).join('');
+
+    const discountRow = detail.discount > 0
+      ? `<tr>
+          <td colspan="3" style="text-align:right;font-weight:500">Giảm giá${detail.voucher_code ? ` (${detail.voucher_code})` : ''}:</td>
+          <td style="text-align:right;color:#e74c3c">-${fmtPrice(detail.discount)}</td>
+        </tr>`
+      : '';
+
+    const paymentMethod = detail.payment_method === 'transfer' ? 'Chuyển khoản' : 'Tiền mặt';
+    const paymentStatus = detail.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán';
+    const deliveryType = detail.delivery_type === 'ship' ? 'Giao hàng' : 'Tại quán';
+
+    const now = new Date(detail.created_at);
+    const dateStr = now.toLocaleDateString('vi-VN');
+    const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+    el.innerHTML = `<div id="receipt">
+      <div class="receipt-header">
+        <div class="shop-name">${s.shop_name}</div>
+        ${s.shop_address ? `<div class="shop-info">${s.shop_address}</div>` : ''}
+        ${s.shop_phone ? `<div class="shop-info">Tel: ${s.shop_phone}</div>` : ''}
+        ${s.shop_email ? `<div class="shop-info">Email: ${s.shop_email}</div>` : ''}
+        ${s.shop_hours ? `<div class="shop-info">Giờ: ${s.shop_hours}</div>` : ''}
+      </div>
+
+      <div class="receipt-divider"></div>
+
+      <div class="receipt-title">HÓA ĐƠN THANH TOÁN</div>
+
+      <div class="receipt-divider"></div>
+
+      <table class="info-table">
+        <tr><td class="label">Mã ĐH:</td><td class="value">#${detail.order_code}</td></tr>
+        <tr><td class="label">Khách hàng:</td><td class="value">${detail.customer_name}</td></tr>
+        <tr><td class="label">SĐT:</td><td class="value">${detail.customer_phone}</td></tr>
+        ${detail.address ? `<tr><td class="label">Địa chỉ:</td><td class="value">${detail.address}</td></tr>` : ''}
+        <tr><td class="label">HT giao:</td><td class="value">${deliveryType}</td></tr>
+        <tr><td class="label">HT thanh toán:</td><td class="value">${paymentMethod}</td></tr>
+        <tr><td class="label">TT thanh toán:</td><td class="value">${paymentStatus}</td></tr>
+        ${detail.note ? `<tr><td class="label">Ghi chú:</td><td class="value">${detail.note}</td></tr>` : ''}
+        <tr><td class="label">Ngày:</td><td class="value">${dateStr} ${timeStr}</td></tr>
+      </table>
+
+      <div class="receipt-divider"></div>
+
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="text-align:center;width:40px">SL</th>
+            <th style="text-align:left">Món</th>
+            <th style="text-align:right;width:90px">Đơn giá</th>
+            <th style="text-align:right;width:100px">Thành tiền</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items}
+          ${discountRow}
+        </tbody>
+      </table>
+
+      <div class="receipt-divider"></div>
+
+      <div class="receipt-total">
+        <span class="total-label">TỔNG CỘNG</span>
+        <span class="total-value">${fmtPrice(detail.total)}</span>
+      </div>
+
+      <div class="receipt-divider"></div>
+
+      <div class="receipt-footer">
+        <p>Cảm ơn quý khách và hẹn gặp lại!</p>
+      </div>
+    </div>`;
     window.print();
   }
 

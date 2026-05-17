@@ -286,7 +286,7 @@ router.get('/:id', async (req, res) => {
   try {
     const [orders] = await pool.execute(
       `SELECT id, order_code, customer_name, customer_phone, delivery_type, address,
-              note, payment_method, payment_status, total, status, created_at
+              note, payment_method, payment_status, total, discount, voucher_code, status, created_at
        FROM orders WHERE id = ?`, [id]
     );
     if (!orders.length) return res.status(404).json({ success: false, message: 'Không tìm thấy đơn' });
