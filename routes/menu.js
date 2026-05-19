@@ -50,6 +50,27 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/top-selling', async (req, res) => {
+  try {
+    const [rows] = await pool.execute(`
+      SELECT m.id, m.name, m.price, m.description, m.image_bg, c.slug AS category,
+             COALESCE(SUM(oi.quantity),0) AS total_qty
+      FROM menu_items m
+      JOIN categories c ON m.category_id = c.id
+      LEFT JOIN order_items oi ON oi.menu_item_id = m.id
+      LEFT JOIN orders o ON o.id = oi.order_id AND o.status != 'cancelled'
+      WHERE c.slug != 'topping'
+      GROUP BY m.id
+      ORDER BY total_qty DESC, m.price DESC
+      LIMIT 5
+    `);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('Top selling error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+});
+
 router.post('/', authMiddleware, async (req, res) => {
   const { name, category_id, price, description, image_bg } = req.body;
   const catId = Number(category_id);

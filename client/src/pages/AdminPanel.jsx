@@ -13,8 +13,8 @@ export default function AdminPanel() {
   const nav = useNavigate();
   const [tab, setTab] = useState('dashboard');
   const [username, setUsername] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const allMenuRef = useRef([]);
-  const chartRef = useRef(null);
 
   useEffect(() => {
     const token = localStorage.getItem('admin_token');
@@ -30,6 +30,11 @@ export default function AdminPanel() {
     return () => document.removeEventListener('click', onClick);
   }, []);
 
+  function handleSetTab(t) {
+    setTab(t);
+    setSidebarOpen(false);
+  }
+
   function logout() {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_username');
@@ -38,9 +43,10 @@ export default function AdminPanel() {
 
   return (
     <div className="d-flex" style={{minHeight:'100vh'}}>
-      <AdminSidebar tab={tab} setTab={setTab} username={username} logout={logout} />
+      <button id="sidebarToggle" onClick={() => setSidebarOpen(o => !o)}><i className="bi bi-list"></i></button>
+      <AdminSidebar tab={tab} setTab={handleSetTab} username={username} logout={logout} open={sidebarOpen} onToggle={() => setSidebarOpen(false)} />
       <main className="main-content p-4" style={{overflow:'auto'}}>
-        {tab === 'dashboard' && <DashboardTab chartRef={chartRef} />}
+        {tab === 'dashboard' && <DashboardTab />}
         {tab === 'orders' && <OrdersTab />}
         {tab === 'menu' && <MenuTab allMenuRef={allMenuRef} />}
         {tab === 'vouchers' && <VouchersTab />}

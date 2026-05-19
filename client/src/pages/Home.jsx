@@ -23,6 +23,7 @@ function genCode() {
 export default function Home() {
   const { cart, addToCart, removeFromCart, updateQty, clearCart, cartTotal } = useCart();
   const [allItems, setAllItems] = useState([]);
+  const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('all');
   const [search, setSearch] = useState('');
@@ -45,6 +46,7 @@ export default function Home() {
       .then(r => r.json())
       .then(j => { if (j.success) setAllItems(j.data); })
       .finally(() => setLoading(false));
+    fetch(`${API}/menu/top-selling`).then(r => r.json()).then(j => { if (j.success) setFeatured(j.data); });
   }, []);
 
   const foodItems = allItems
@@ -57,12 +59,15 @@ export default function Home() {
     .filter(i => category === 'all' || category === 'douong')
     .filter(i => !search || i.name.toLowerCase().includes(search.toLowerCase()));
 
-  const featured = allItems.filter(i => i.category !== 'topping').slice(0, 4);
-
   function openDetail(item) {
     setSelectedItem(item);
     setDetailQty(1);
     document.querySelectorAll('.topping-cb').forEach(cb => cb.checked = false);
+    if (item.category === 'douong') {
+      setItemToppings([]);
+      if (detailModalRef.current) { const modal = new bootstrap.Modal(detailModalRef.current); modal.show(); }
+      return;
+    }
     fetch(`${API}/menu/${item.id}/toppings`)
       .then(r => r.json())
       .then(j => {
@@ -234,7 +239,23 @@ export default function Home() {
     <div className="d-flex flex-column min-vh-100">
       <CustomerNavbar cart={cart} openCart={openCart} />
       <CategoryNav category={category} onCategoryChange={setCategory} search={search} onSearchChange={setSearch} />
-      <div className="container py-3 flex-grow-1">
+
+      <div className="hero-section">
+        <div className="container text-center">
+          <h1 className="text-white fw-bold mb-2 animate-fade-in-up" style={{fontSize:'2rem', fontFamily:'var(--font-display)'}}>
+            Châu Loan
+          </h1>
+          <p className="text-white-50 mb-3 animate-fade-in-up" style={{animationDelay:'0.1s'}}>
+            Cơm — Mì — Phở — Đồ uống
+          </p>
+          <a href="#menuSection" className="btn btn-brand btn-lg animate-fade-in-up px-4" style={{animationDelay:'0.2s'}}
+            onClick={e => { e.preventDefault(); document.getElementById('menuSection')?.scrollIntoView({behavior:'smooth'}); }}>
+            <i className="bi bi-arrow-down"></i> Xem thực đơn
+          </a>
+        </div>
+      </div>
+
+      <div className="container py-3 flex-grow-1" id="menuSection">
         {featured.length > 0 && category === 'all' && !search && (
           <FeaturedItems featured={featured} onItemClick={openDetail} />
         )}

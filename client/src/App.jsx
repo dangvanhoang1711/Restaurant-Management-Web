@@ -7,6 +7,7 @@ import Cooking from './pages/Cooking';
 import AdminLogin from './pages/AdminLogin';
 import AdminForgot from './pages/AdminForgot';
 import AdminPanel from './pages/AdminPanel';
+import ToastContainer from './components/ToastContainer';
 
 export default function App() {
   return (
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="/admin-forgot" element={<AdminForgot />} />
           <Route path="/admin" element={<AdminPanel />} />
         </Routes>
+        <ToastContainer />
       </CartProvider>
     </BrowserRouter>
   );

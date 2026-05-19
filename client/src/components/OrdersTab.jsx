@@ -60,7 +60,7 @@ export default function OrdersTab() {
   useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [search]);
 
   const statusMap = { pending: 'Chờ XN', confirmed: 'Đã XN', preparing: 'Đang nấu', completed: 'Xong', cancelled: 'Hủy' };
-  const colorMap = { pending: 'warning', confirmed: 'primary', preparing: 'info', completed: 'success', cancelled: 'danger' };
+  const statusCls = { pending: 'status-pending', confirmed: 'status-confirmed', preparing: 'status-preparing', completed: 'status-completed', cancelled: 'status-cancelled' };
 
   function authHeaders(extra) {
     const t = localStorage.getItem('admin_token');
@@ -85,9 +85,10 @@ export default function OrdersTab() {
   function exportCSV() {
     let url = `${API}/orders/export`;
     if (filter !== 'all') url += `?status=${filter}`;
-    fetch(url).then(r => r.blob()).then(blob => {
+    const headers = { 'Authorization': 'Bearer ' + localStorage.getItem('admin_token') };
+    fetch(url, { headers }).then(r => r.blob()).then(blob => {
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'orders.csv'; a.click();
-    });
+    }).catch(() => {});
   }
 
   function printInvoice() {
@@ -224,7 +225,7 @@ export default function OrdersTab() {
                   <td className="fw-bold text-brand">{fmtPrice(o.total)}</td>
                   <td>{o.payment_method === 'transfer' ? 'CK' : 'COD'}</td>
                   <td>{o.delivery_type === 'ship' ? '🚚' : '🏪'}</td>
-                  <td><span className={`badge bg-${colorMap[o.status] || 'secondary'} status-badge`}>{statusMap[o.status] || o.status}</span></td>
+                  <td><span className={`status-badge ${statusCls[o.status] || 'bg-secondary'}`}>{statusMap[o.status] || o.status}</span></td>
                 </tr>
               ))}
             </tbody>

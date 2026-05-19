@@ -60,19 +60,11 @@ export default function SettingsTab() {
                 <label className="form-label small fw-medium">Giờ mở cửa</label>
                 <input type="text" className="form-control" name="shop_hours" defaultValue={settings.shop_hours || ''} />
               </div>
-              <div className="col-md-8">
+              <div className="col-md-6">
                 <label className="form-label small fw-medium">Địa chỉ</label>
                 <input type="text" className="form-control" name="shop_address" defaultValue={settings.shop_address || ''} />
               </div>
               <div className="col-md-3">
-                <label className="form-label small fw-medium">Vĩ độ quán</label>
-                <input type="text" className="form-control" name="restaurant_lat" defaultValue={settings.restaurant_lat || '16.4663130'} />
-              </div>
-              <div className="col-md-3">
-                <label className="form-label small fw-medium">Kinh độ quán</label>
-                <input type="text" className="form-control" name="restaurant_lng" defaultValue={settings.restaurant_lng || '107.5996701'} />
-              </div>
-              <div className="col-md-2">
                 <label className="form-label small fw-medium">Số km cơ bản</label>
                 <input type="number" className="form-control" name="delivery_base_km" defaultValue={settings.delivery_base_km || 3} min="0" step="0.5" />
               </div>

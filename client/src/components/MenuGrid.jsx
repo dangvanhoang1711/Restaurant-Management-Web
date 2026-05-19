@@ -32,14 +32,16 @@ export default function MenuGrid({ items, loading, category, onItemClick }) {
           </div>
         ) : items.map(item => (
           <div className="col-lg-3 col-md-4 col-6" key={item.id}>
-            <div className="card border-0 shadow-sm h-100 menu-card" onClick={() => onItemClick(item)} style={{cursor:'pointer'}}>
-              <div className="rounded-top" style={{background: item.image_bg, height: 120}} />
+            <div className="card h-100 menu-card" onClick={() => onItemClick(item)}>
+              <div className="card-img-top" style={{background: item.image_bg}}>
+                <span className="price-tag">{fmtPrice(item.price)}</span>
+              </div>
               <div className="card-body d-flex flex-column">
-                <h6 className="card-title fw-bold mb-1">{item.name}</h6>
-                <p className="card-text text-muted small flex-grow-1">{item.description}</p>
+                <h6 className="card-title mb-1">{item.name}</h6>
+                <p className="card-text flex-grow-1">{item.description}</p>
                 <div className="d-flex justify-content-between align-items-center mt-auto">
-                  <span className="fs-5 fw-bold text-brand">{fmtPrice(item.price)}</span>
-                  <button className="btn btn-sm btn-brand rounded-pill" onClick={e => { e.stopPropagation(); onItemClick(item); }}>
+                  <span className="fw-bold text-brand" style={{fontSize:'0.9rem'}}>{fmtPrice(item.price)}</span>
+                  <button className="btn btn-brand btn-add" onClick={e => { e.stopPropagation(); onItemClick(item); }}>
                     <i className="bi bi-plus-lg"></i> Thêm
                   </button>
                 </div>

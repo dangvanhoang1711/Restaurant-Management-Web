@@ -15,11 +15,11 @@ export default function CategoryNav({ category, onCategoryChange, search, onSear
   return (
     <div className="category-nav sticky-top" style={{top:56}}>
       <div className="container py-2">
-        <div className="row align-items-center g-2">
-          <div className="col-lg-8">
-            <ul className="nav nav-pills nav-fill gap-1" id="categoryTabs">
+        <div className="d-flex gap-3 align-items-center">
+          <div className="flex-grow-1 overflow-hidden">
+            <ul className="nav nav-pills" id="categoryTabs">
               <li className="nav-item" key="all">
-                <button className={`nav-link py-1 px-3 ${category === 'all' ? 'active' : ''}`}
+                <button className={`nav-link ${category === 'all' ? 'active' : ''}`}
                   onClick={() => onCategoryChange('all')}>
                   <i className="bi bi-grid-fill"></i> Tất cả
                 </button>
@@ -27,7 +27,7 @@ export default function CategoryNav({ category, onCategoryChange, search, onSear
               {cats.map(c => (
                 <li className="nav-item" key={c.slug}>
                   <button
-                    className={`nav-link py-1 px-3 ${category === c.slug ? 'active' : ''}`}
+                    className={`nav-link ${category === c.slug ? 'active' : ''}`}
                     onClick={() => onCategoryChange(c.slug)}
                   >
                     {iconMap[c.slug] || '📋'} {c.name}
@@ -36,10 +36,10 @@ export default function CategoryNav({ category, onCategoryChange, search, onSear
               ))}
             </ul>
           </div>
-          <div className="col-lg-4">
+          <div style={{minWidth:180}}>
             <input
               type="text"
-              className="form-control form-control-sm"
+              className="form-control form-control-sm search-box"
               placeholder="🔍 Tìm món..."
               value={search}
               onChange={e => onSearchChange(e.target.value)}

@@ -169,9 +169,12 @@ router.put('/:id/payment', authMiddleware, async (req, res) => {
 
     if (payment_status === 'paid') {
       const currentStatus = orders[0].status;
+      const newStatus = (currentStatus === 'pending' || currentStatus === 'cancelled')
+        ? (currentStatus === 'cancelled' ? 'cancelled' : 'confirmed')
+        : currentStatus;
       await pool.execute('UPDATE orders SET payment_status = ?, status = ? WHERE id = ?',
-        ['paid', currentStatus === 'cancelled' ? 'cancelled' : 'confirmed', id]);
-      onOrderUpdated({ id: Number(id), payment_status: 'paid', status: currentStatus === 'cancelled' ? 'cancelled' : 'confirmed' });
+        ['paid', newStatus, id]);
+      onOrderUpdated({ id: Number(id), payment_status: 'paid', status: newStatus });
     } else {
       await pool.execute('UPDATE orders SET payment_status = ? WHERE id = ?', ['unpaid', id]);
       onOrderUpdated({ id: Number(id), payment_status: 'unpaid' });
@@ -214,13 +217,24 @@ router.get('/stats', authMiddleware, async (req, res) => {
     const [preparing] = await pool.execute(
       `SELECT COUNT(*) AS count FROM orders WHERE status = 'preparing'`
     );
+    const [payment] = await pool.execute(
+      `SELECT payment_method, COUNT(*) AS count, COALESCE(SUM(total),0) AS total
+       FROM orders WHERE DATE(created_at) = CURDATE() AND status != 'cancelled'
+       GROUP BY payment_method`
+    );
+    let cashCount = 0, cashTotal = 0, transferCount = 0, transferTotal = 0;
+    payment.forEach(r => {
+      if (r.payment_method === 'cod') { cashCount = Number(r.count); cashTotal = Number(r.total); }
+      else { transferCount = Number(r.count); transferTotal = Number(r.total); }
+    });
     res.json({
       success: true,
       data: {
-        todayOrders: today[0].total,
-        todayRevenue: today[0].revenue,
-        pendingOrders: pending[0].count,
-        preparingOrders: preparing[0].count,
+        todayOrders: Number(today[0].total),
+        todayRevenue: Number(today[0].revenue),
+        pendingOrders: Number(pending[0].count),
+        preparingOrders: Number(preparing[0].count),
+        cashCount, cashTotal, transferCount, transferTotal,
       }
     });
   } catch (err) {
@@ -231,29 +245,86 @@ router.get('/stats', authMiddleware, async (req, res) => {
 
 router.get('/revenue', authMiddleware, async (req, res) => {
   try {
+    const days = Math.min(Math.max(parseInt(req.query.days) || 7, 1), 90);
+    const interval = days - 1;
     const [rows] = await pool.execute(`
       SELECT DATE(created_at) AS date, COUNT(*) AS orders, COALESCE(SUM(total),0) AS revenue
       FROM orders
-      WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
+      WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
         AND status != 'cancelled'
       GROUP BY DATE(created_at)
       ORDER BY date ASC
-    `);
+    `, [interval]);
+
+    function fmtLabel(d) {
+      return d.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
+    }
+    function ymd(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
     const labels = [];
     const data = [];
     const counts = [];
-    for (let i = 6; i >= 0; i--) {
+    for (let i = interval; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const ds = d.toISOString().slice(0, 10);
-      const row = rows.find(r => r.date.toISOString().slice(0, 10) === ds);
-      labels.push(d.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' }));
-      data.push(row ? row.revenue : 0);
-      counts.push(row ? row.orders : 0);
+      const ds = ymd(d);
+      const row = rows.find(r => ymd(r.date) === ds);
+      labels.push(fmtLabel(d));
+      data.push(row ? Number(row.revenue) : 0);
+      counts.push(row ? Number(row.orders) : 0);
     }
-    res.json({ success: true, data: { labels, data, counts } });
+    const totalRevenue = data.reduce((a, b) => a + b, 0);
+    const totalOrders = counts.reduce((a, b) => a + b, 0);
+    res.json({ success: true, data: { labels, data, counts, totalRevenue, totalOrders, days } });
   } catch (err) {
     console.error('Revenue error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+});
+
+router.get('/top-items', authMiddleware, async (req, res) => {
+  try {
+    const days = Math.min(Math.max(parseInt(req.query.days) || 7, 1), 90);
+    const interval = days - 1;
+    const [rows] = await pool.execute(`
+      SELECT oi.item_name, SUM(oi.quantity) AS qty, SUM(oi.item_price * oi.quantity) AS revenue
+      FROM order_items oi
+      JOIN orders o ON o.id = oi.order_id
+      WHERE o.created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        AND o.status != 'cancelled'
+        AND oi.item_name NOT LIKE '%(+%'
+      GROUP BY oi.item_name
+      ORDER BY qty DESC, revenue DESC
+      LIMIT 5
+    `, [interval]);
+    res.json({ success: true, data: rows.map(r => ({ ...r, qty: Number(r.qty), revenue: Number(r.revenue) })) });
+  } catch (err) {
+    console.error('Top items error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+});
+
+router.get('/top-customers', authMiddleware, async (req, res) => {
+  try {
+    const days = Math.min(Math.max(parseInt(req.query.days) || 30, 1), 365);
+    const interval = days - 1;
+    const [rows] = await pool.execute(`
+      SELECT customer_name, customer_phone, COUNT(*) AS orders, COALESCE(SUM(total),0) AS total_spent
+      FROM orders
+      WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+        AND status != 'cancelled'
+      GROUP BY customer_name, customer_phone
+      ORDER BY orders DESC, total_spent DESC
+      LIMIT 5
+    `, [interval]);
+    res.json({ success: true, data: rows.map(r => ({ ...r, orders: Number(r.orders), total_spent: Number(r.total_spent) })) });
+  } catch (err) {
+    console.error('Top customers error:', err);
     res.status(500).json({ success: false, message: 'Lỗi server' });
   }
 });
