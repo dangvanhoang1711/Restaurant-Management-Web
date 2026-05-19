@@ -138,4 +138,19 @@ router.post('/reset', async (req, res) => {
   }
 });
 
+router.get('/seed', async (req, res) => {
+  try {
+    const [existing] = await pool.execute('SELECT COUNT(*) AS cnt FROM admin_users');
+    if (Number(existing[0].cnt) > 0) {
+      return res.json({ success: true, message: 'Tài khoản admin đã tồn tại' });
+    }
+    const hash = await bcrypt.hash('admin123', 10);
+    await pool.execute('INSERT INTO admin_users (username, password, email) VALUES (?,?,?)', ['admin', hash, process.env.ADMIN_EMAIL || '']);
+    res.json({ success: true, message: 'Tạo tài khoản admin thành công! Tên đăng nhập: admin, Mật khẩu: admin123' });
+  } catch (err) {
+    console.error('Seed error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
+});
+
 module.exports = { router, authMiddleware };
