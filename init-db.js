@@ -45,7 +45,7 @@ async function initDatabase() {
       customer_phone VARCHAR(20) NOT NULL,
       delivery_type ENUM('ship','pickup') NOT NULL DEFAULT 'pickup',
       address VARCHAR(255) DEFAULT '',
-      note TEXT DEFAULT '',
+      note TEXT,
       payment_method ENUM('cod','transfer') NOT NULL DEFAULT 'cod',
       total INT NOT NULL DEFAULT 0,
       status ENUM('pending','confirmed','preparing','completed','cancelled') NOT NULL DEFAULT 'pending',
