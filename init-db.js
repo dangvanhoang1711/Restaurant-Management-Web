@@ -165,6 +165,8 @@ async function initDatabase() {
   const catPho = await ensureCat('Phở', 'pho');
   const catTop = await ensureCat('Topping', 'topping');
   const catDoUong = await ensureCat('Đồ uống', 'douong');
+  const catBanh = await ensureCat('Bánh', 'banhbao');
+  const catGa = await ensureCat('Gà', 'ga');
 
   async function seedMenu(catId, items) {
     for (const item of items) {
@@ -175,7 +177,59 @@ async function initDatabase() {
     }
   }
 
-  console.log('  \u2713 Bỏ qua seed món ăn — chỉ giữ món do admin thêm');
+  await seedMenu(catMi, [
+    ['Mì Vịt Tiềm', 75000, 'Mì vịt tiềm đậm vị phương Bắc', 'linear-gradient(135deg,#a8edea,#fed6e3)'],
+    ['Mì Xào Giòn', 65000, 'Mì xào giòn thơm ngon', 'linear-gradient(135deg,#f093fb,#f5576c)'],
+  ]);
+  await seedMenu(catCom, [
+    ['Cơm Sườn', 40000, 'Cơm sườn chiên kèm sốt chua ngọt', 'linear-gradient(135deg,#ffecd2,#fcb69f)'],
+    ['Cơm Gà Rô-ti', 55000, 'Cơm gà rô-ti chiên giòn kèm sốt chua ngọt', 'linear-gradient(135deg,#a1c4fd,#c2e9fb)'],
+    ['Cơm Chiên Dương Châu', 45000, 'Cơm chiên dương châu giòn ngon', 'linear-gradient(135deg,#ff9a9e,#fad0c4)'],
+    ['Cơm Chiên Gà', 70000, 'Cơm chiên gà xối mỡ đặc biệt', 'linear-gradient(135deg,#667eea,#764ba2)'],
+  ]);
+  await seedMenu(catPho, [
+    ['Phở Bò', 45000, 'Phở bò mang đậm hương vị Việt', 'linear-gradient(135deg,#89f7fe,#66a6ff)'],
+    ['Phở Gà', 45000, 'Phở gà mang đậm hương vị Việt', 'linear-gradient(135deg,#fddb92,#d1fdff)'],
+  ]);
+  await seedMenu(catDoUong, [
+    ['Coca Cola', 15000, 'Coca Cola', 'linear-gradient(135deg,#e52d27,#b31217)'],
+    ['Bia Huda', 15000, 'Bia Huda', 'linear-gradient(135deg,#f7971e,#ffd200)'],
+    ['Trà 0 độ', 10000, 'Trà xanh không độ', 'linear-gradient(135deg,#11998e,#38ef7d)'],
+    ['7 Up', 15000, '7 Up', 'linear-gradient(135deg,#4facfe,#00f2fe)'],
+  ]);
+  await seedMenu(catTop, [
+    ['Trứng gà luộc', 5000, '', 'linear-gradient(135deg,#4facfe,#00f2fe)'],
+    ['Chả lụa', 15000, '', 'linear-gradient(135deg,#ffecd2,#fcb69f)'],
+  ]);
+  await seedMenu(catGa, [
+    ['Gà Rô-ti', 60000, 'Gà rô-ti chiên giòn', 'linear-gradient(135deg,#f093fb,#f5576c)'],
+  ]);
+  await seedMenu(catBanh, [
+    ['Bánh Mì', 15000, 'Bánh mì Việt Nam', 'linear-gradient(135deg,#ffecd2,#fcb69f)'],
+  ]);
+
+  // Seed vouchers
+  const vouchers = [
+    ['BO60QKU', 'percent', 10, 50000, 100],
+    ['B4NRSQN', 'percent', 15, 100000, 50],
+    ['1MGRD95', 'fixed', 20000, 80000, 30],
+    ['EN2GN18', 'fixed', 50000, 200000, 20],
+    ['HG7AZ9C', 'percent', 20, 150000, 40],
+    ['76HEYXS', 'fixed', 10000, 0, 200],
+    ['5458142', 'percent', 5, 0, 500],
+  ];
+  for (const [code, type, value, min_order, max_usage] of vouchers) {
+    await conn.query('INSERT IGNORE INTO vouchers (code, type, value, min_order, max_usage) VALUES (?,?,?,?,?)', [code, type, value, min_order, max_usage]);
+  }
+
+  // Seed default admin if none exists
+  const [adminCount] = await conn.query('SELECT COUNT(*) AS cnt FROM admin_users');
+  if (Number(adminCount[0].cnt) === 0) {
+    const bcrypt = require('bcryptjs');
+    const hash = await bcrypt.hash('admin123', 10);
+    await conn.query('INSERT INTO admin_users (username, password, email) VALUES (?,?,?)', ['admin', hash, process.env.ADMIN_EMAIL || '']);
+    console.log('  \u2713 Đã tạo tài khoản admin mặc định (admin / admin123)');
+  }
 
   await conn.query(`DELETE m1 FROM menu_items m1 INNER JOIN menu_items m2 WHERE m1.id > m2.id AND m1.name = m2.name AND m1.category_id = m2.category_id`);
 
