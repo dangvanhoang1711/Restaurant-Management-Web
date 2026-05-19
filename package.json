@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "description": "Web bán đồ ăn - Cơm, Mì, Phở",
   "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
-    "build": "cd client && npm run build",
-    "start": "npm run build && node server.js",
+    "build": "cd client && npm install && npm run build",
+    "start": "node server.js",
     "dev": "node server.js"
   },
   "dependencies": {
