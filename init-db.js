@@ -6,7 +6,7 @@ const CFG = {
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   charset: 'utf8mb4',
-  ...(process.env.DB_SSL === 'true' ? { ssl: {} } : {}),
+  ...(process.env.DB_SSL === 'true' ? { ssl: { rejectUnauthorized: false } } : {}),
 };
 
 const DB_NAME = process.env.DB_NAME || 'quan_an_ngon';

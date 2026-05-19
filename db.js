@@ -9,7 +9,7 @@ const DB_CONFIG = {
   waitForConnections: true,
   connectionLimit: 10,
   charset: 'utf8mb4',
-  ...(process.env.DB_SSL === 'true' ? { ssl: {} } : {}),
+  ...(process.env.DB_SSL === 'true' ? { ssl: { rejectUnauthorized: false } } : {}),
 };
 
 const pool = mysql.createPool(DB_CONFIG);
