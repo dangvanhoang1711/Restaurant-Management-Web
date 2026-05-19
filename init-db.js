@@ -173,29 +173,31 @@ async function initDatabase() {
       const [exist] = await conn.query('SELECT id FROM menu_items WHERE name = ? AND category_id = ?', [item[0], catId]);
       if (!exist.length) {
         await conn.query('INSERT INTO menu_items (category_id, name, price, description, image_bg) VALUES (?,?,?,?,?)', [catId, ...item]);
+      } else {
+        await conn.query('UPDATE menu_items SET price = ?, description = ?, image_bg = ? WHERE id = ?', [item[1], item[2], item[3], exist[0].id]);
       }
     }
   }
 
   await seedMenu(catMi, [
-    ['Mì Vịt Tiềm', 75000, 'Mì vịt tiềm đậm vị phương Bắc', 'linear-gradient(135deg,#a8edea,#fed6e3)'],
-    ['Mì Xào Giòn', 65000, 'Mì xào giòn thơm ngon', 'linear-gradient(135deg,#f093fb,#f5576c)'],
+    ['Mì Vịt Tiềm', 75000, 'Mì vịt tiềm đậm vị phương Bắc', 'url(/images/1778931053793-1t6ak1.jpg) center/cover'],
+    ['Mì Xào Giòn', 65000, 'Mì xào giòn thơm ngon', 'url(/images/1779015088090-oy1d3k.png) center/cover'],
   ]);
   await seedMenu(catCom, [
-    ['Cơm Sườn', 40000, 'Cơm sườn chiên kèm sốt chua ngọt', 'linear-gradient(135deg,#ffecd2,#fcb69f)'],
-    ['Cơm Gà Rô-ti', 55000, 'Cơm gà rô-ti chiên giòn kèm sốt chua ngọt', 'linear-gradient(135deg,#a1c4fd,#c2e9fb)'],
-    ['Cơm Chiên Dương Châu', 45000, 'Cơm chiên dương châu giòn ngon', 'linear-gradient(135deg,#ff9a9e,#fad0c4)'],
-    ['Cơm Chiên Gà', 70000, 'Cơm chiên gà xối mỡ đặc biệt', 'linear-gradient(135deg,#667eea,#764ba2)'],
+    ['Cơm Sườn', 40000, 'Cơm sườn chiên kèm sốt chua ngọt', 'url(/images/1778931105383-h3hfc8.jpg) center/cover'],
+    ['Cơm Gà Rô-ti', 55000, 'Cơm gà rô-ti chiên giòn kèm sốt chua ngọt', 'url(/images/1778932515035-o05snv.jpg) center/cover'],
+    ['Cơm Chiên Dương Châu', 45000, 'Cơm chiên dương châu giòn ngon', 'url(/images/1778932585229-t7gcie.jpg) center/cover'],
+    ['Cơm Chiên Gà', 70000, 'Cơm chiên gà xối mỡ đặc biệt', 'url(/images/1779015163600-xam47i.jpg) center/cover'],
   ]);
   await seedMenu(catPho, [
-    ['Phở Bò', 45000, 'Phở bò mang đậm hương vị Việt', 'linear-gradient(135deg,#89f7fe,#66a6ff)'],
-    ['Phở Gà', 45000, 'Phở gà mang đậm hương vị Việt', 'linear-gradient(135deg,#fddb92,#d1fdff)'],
+    ['Phở Bò', 45000, 'Phở bò mang đậm hương vị Việt', 'url(/images/1779037726046-ryk0qb.jpg) center/cover'],
+    ['Phở Gà', 45000, 'Phở gà mang đậm hương vị Việt', 'url(/images/1779037769520-gt00w3.jpg) center/cover'],
   ]);
   await seedMenu(catDoUong, [
-    ['Coca Cola', 15000, 'Coca Cola', 'linear-gradient(135deg,#e52d27,#b31217)'],
-    ['Bia Huda', 15000, 'Bia Huda', 'linear-gradient(135deg,#f7971e,#ffd200)'],
-    ['Trà 0 độ', 10000, 'Trà xanh không độ', 'linear-gradient(135deg,#11998e,#38ef7d)'],
-    ['7 Up', 15000, '7 Up', 'linear-gradient(135deg,#4facfe,#00f2fe)'],
+    ['Coca Cola', 15000, 'Coca Cola', 'url(/images/1779037840459-cfsu58.webp) center/cover'],
+    ['Bia Huda', 15000, 'Bia Huda', 'url(/images/1779038033131-r6fy90.webp) center/cover'],
+    ['Trà 0 độ', 10000, 'Trà xanh không độ', 'url(/images/1779038118969-dv2s9c.jpg) center/cover'],
+    ['7 Up', 15000, '7 Up', 'url(/images/1779038214989-6sr7vr.jpg) center/cover'],
   ]);
   await seedMenu(catTop, [
     ['Trứng gà luộc', 5000, '', 'linear-gradient(135deg,#4facfe,#00f2fe)'],
