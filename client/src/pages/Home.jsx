@@ -23,6 +23,7 @@ function genCode() {
 export default function Home() {
   const { cart, addToCart, removeFromCart, updateQty, clearCart, cartTotal } = useCart();
   const [allItems, setAllItems] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
@@ -39,9 +40,11 @@ export default function Home() {
   const checkoutCodeRef = useRef('');
 
   useEffect(() => {
+    setLoading(true);
     fetch(`${API}/menu`)
       .then(r => r.json())
-      .then(j => { if (j.success) setAllItems(j.data); });
+      .then(j => { if (j.success) setAllItems(j.data); })
+      .finally(() => setLoading(false));
   }, []);
 
   const foodItems = allItems
@@ -114,7 +117,16 @@ export default function Home() {
       return;
     }
 
-    const items = cart.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty }));
+    const items = cart.map(i => {
+      const topPrice = (i.toppings || []).reduce((s, t) => s + t.price, 0);
+      const topStr = (i.toppings || []).map(t => t.name).join(', ');
+      return {
+        id: i.id,
+        name: topStr ? `${i.name} (+${topStr})` : i.name,
+        price: i.price + topPrice,
+        qty: i.qty,
+      };
+    });
 
     fetch(`${API}/orders`, {
       method: 'POST',
@@ -227,7 +239,7 @@ export default function Home() {
           <FeaturedItems featured={featured} onItemClick={openDetail} />
         )}
         {foodItems.length > 0 && (
-          <MenuGrid items={foodItems} category={category === 'douong' ? 'all' : category} onItemClick={openDetail} />
+          <MenuGrid items={foodItems} loading={loading} category={category === 'douong' ? 'all' : category} onItemClick={openDetail} />
         )}
         {(category === 'all' || category === 'douong') && drinkItems.length > 0 && (
           <div className="mt-4">

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
 import { API, fmtPrice, playNewOrderSound } from '../utils';
+import { SkeletonStat } from './Skeleton';
 
 export default function DashboardTab({ chartRef }) {
   const [stats, setStats] = useState(null);
@@ -21,11 +22,32 @@ export default function DashboardTab({ chartRef }) {
 
   useEffect(() => {
     load();
-    const t = localStorage.getItem('admin_token');
-    const es = new EventSource(`${API}/orders/stream?token=${t}`);
-    es.addEventListener('order:created', () => { playNewOrderSound(); load(); });
-    es.addEventListener('order:updated', load);
-    return () => es.close();
+    const token = localStorage.getItem('admin_token');
+    let es = null;
+    let reconnectTimer = null;
+    let reconnectAttempts = 0;
+
+    function connectSSE() {
+      if (!window.EventSource || !token) return;
+      es?.close();
+      es = new EventSource(`${API}/orders/stream?token=${token}`);
+
+      es.addEventListener('order:created', () => { playNewOrderSound(); load(); });
+      es.addEventListener('order:updated', load);
+
+      es.onerror = () => {
+        es?.close();
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+        reconnectAttempts++;
+        reconnectTimer = setTimeout(connectSSE, delay);
+      };
+
+      es.addEventListener('connected', () => { reconnectAttempts = 0; });
+    }
+
+    connectSSE();
+
+    return () => { es?.close(); clearTimeout(reconnectTimer); };
   }, []);
 
   useEffect(() => {
@@ -57,30 +79,32 @@ export default function DashboardTab({ chartRef }) {
   return (
     <>
       <h4 className="fw-bold mb-3">Tổng quan</h4>
-      {stats && (
-        <div className="row g-3 mb-4">
-          {[
-            { label: 'Đơn hôm nay', value: stats.todayOrders || 0, icon: 'receipt', color: 'primary' },
-            { label: 'Chờ xử lý', value: stats.pendingOrders || 0, icon: 'clock', color: 'warning' },
-            { label: 'Đang nấu', value: stats.preparingOrders || 0, icon: 'fire', color: 'info' },
-            { label: 'Doanh thu hôm nay', value: fmtPrice(stats.todayRevenue || 0), icon: 'graph-up', color: 'danger' },
-          ].map(s => (
-            <div className="col-lg-3 col-6" key={s.label}>
-              <div className="card border-0 shadow-sm stat-card">
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <div>
-                      <small className="text-muted">{s.label}</small>
-                      <h4 className="fw-bold mb-0 mt-1">{s.value}</h4>
-                    </div>
-                    <i className={`bi bi-${s.icon} fs-2 text-${s.color} opacity-25`}></i>
+      <div className="row g-3 mb-4">
+        {stats ? [
+          { label: 'Đơn hôm nay', value: stats.todayOrders || 0, icon: 'receipt', color: 'primary' },
+          { label: 'Chờ xử lý', value: stats.pendingOrders || 0, icon: 'clock', color: 'warning' },
+          { label: 'Đang nấu', value: stats.preparingOrders || 0, icon: 'fire', color: 'info' },
+          { label: 'Doanh thu hôm nay', value: fmtPrice(stats.todayRevenue || 0), icon: 'graph-up', color: 'danger' },
+        ].map(s => (
+          <div className="col-lg-3 col-6" key={s.label}>
+            <div className="card border-0 shadow-sm stat-card">
+              <div className="card-body">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <small className="text-muted">{s.label}</small>
+                    <h4 className="fw-bold mb-0 mt-1">{s.value}</h4>
                   </div>
+                  <i className={`bi bi-${s.icon} fs-2 text-${s.color} opacity-25`}></i>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        )) : Array.from({ length: 4 }).map((_, i) => (
+          <div className="col-lg-3 col-6" key={'sk-stat-' + i}>
+            <SkeletonStat />
+          </div>
+        ))}
+      </div>
       <div className="row g-3 mb-4">
         <div className="col-lg-8">
           <div className="card border-0 shadow-sm">

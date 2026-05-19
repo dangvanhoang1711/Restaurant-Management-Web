@@ -29,14 +29,35 @@ export default function OrdersTab() {
 
   useEffect(() => {
     load();
-    const t = localStorage.getItem('admin_token');
-    const es = new EventSource(`${API}/orders/stream?token=${t}`);
-    es.addEventListener('order:created', () => { playNewOrderSound(); load(); });
-    es.addEventListener('order:updated', load);
-    return () => es.close();
+    const token = localStorage.getItem('admin_token');
+    let es = null;
+    let reconnectTimer = null;
+    let reconnectAttempts = 0;
+
+    function connectSSE() {
+      if (!window.EventSource || !token) return;
+      es?.close();
+      es = new EventSource(`${API}/orders/stream?token=${token}`);
+
+      es.addEventListener('order:created', () => { playNewOrderSound(); load(); });
+      es.addEventListener('order:updated', load);
+
+      es.onerror = () => {
+        es?.close();
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+        reconnectAttempts++;
+        reconnectTimer = setTimeout(connectSSE, delay);
+      };
+
+      es.addEventListener('connected', () => { reconnectAttempts = 0; });
+    }
+
+    connectSSE();
+
+    return () => { es?.close(); clearTimeout(reconnectTimer); };
   }, [page, filter, pageSize]);
 
-  useEffect(() => { if (search) { const t = setTimeout(load, 300); return () => clearTimeout(t); } }, [search]);
+  useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [search]);
 
   const statusMap = { pending: 'Chờ XN', confirmed: 'Đã XN', preparing: 'Đang nấu', completed: 'Xong', cancelled: 'Hủy' };
   const colorMap = { pending: 'warning', confirmed: 'primary', preparing: 'info', completed: 'success', cancelled: 'danger' };

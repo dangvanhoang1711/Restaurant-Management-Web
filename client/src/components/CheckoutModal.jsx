@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
 import { fmtPrice, API } from '../utils';
+import AddressAutocomplete from './AddressAutocomplete';
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 export default function CheckoutModal({ checkoutModalRef, checkoutCodeRef, handleSubmitOrder, cartTotal }) {
   const [voucher, setVoucher] = useState('');
@@ -7,14 +16,64 @@ export default function CheckoutModal({ checkoutModalRef, checkoutCodeRef, handl
   const [voucherErr, setVoucherErr] = useState('');
   const [discount, setDiscount] = useState(0);
   const [applying, setApplying] = useState(false);
+  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [deliveryType, setDeliveryType] = useState('pickup');
+  const [deliveryLat, setDeliveryLat] = useState(null);
+  const [deliveryLng, setDeliveryLng] = useState(null);
+  const [estimatedFee, setEstimatedFee] = useState(0);
+  const [distanceKm, setDistanceKm] = useState(null);
+
+  useEffect(() => {
+    fetch(`${API}/settings`).then(r => r.json()).then(j => {
+      if (j.success) setDeliveryFee(parseInt(j.data.delivery_fee) || 0);
+    });
+  }, []);
 
   useEffect(() => {
     const el = checkoutModalRef.current;
     if (!el) return;
-    const handler = () => { setVoucher(''); setVoucherMsg(''); setVoucherErr(''); setDiscount(0); };
+    const handler = () => {
+      setVoucher(''); setVoucherMsg(''); setVoucherErr(''); setDiscount(0);
+      setDeliveryType('pickup'); setDeliveryLat(null); setDeliveryLng(null);
+      setEstimatedFee(0); setDistanceKm(null);
+    };
     el.addEventListener('show.bs.modal', handler);
     return () => el.removeEventListener('show.bs.modal', handler);
   }, []);
+
+  useEffect(() => {
+    if (deliveryType !== 'ship' || !deliveryLat || !deliveryLng) {
+      setEstimatedFee(0);
+      setDistanceKm(null);
+      return;
+    }
+    fetch(`${API}/settings`).then(r => r.json()).then(j => {
+      if (!j.success) return;
+      const rLat = parseFloat(j.data.restaurant_lat) || 16.4663130;
+      const rLng = parseFloat(j.data.restaurant_lng) || 107.5996701;
+      const baseKm = parseInt(j.data.delivery_base_km) || 3;
+      const baseFee = parseInt(j.data.delivery_base_fee) || 12000;
+      const extraFee = parseInt(j.data.delivery_extra_fee) || 3000;
+      const dist = haversineKm(rLat, rLng, deliveryLat, deliveryLng);
+      setDistanceKm(Math.round(dist * 10) / 10);
+      const fee = dist <= baseKm ? baseFee : baseFee + Math.ceil(dist - baseKm) * extraFee;
+      setEstimatedFee(fee);
+    });
+  }, [deliveryType, deliveryLat, deliveryLng]);
+
+  function handleAddressCoordinate(coord) {
+    if (coord) {
+      setDeliveryLat(coord.lat);
+      setDeliveryLng(coord.lng);
+    } else {
+      setDeliveryLat(null);
+      setDeliveryLng(null);
+      setEstimatedFee(0);
+      setDistanceKm(null);
+    }
+  }
+
+  const finalTotal = cartTotal - discount + (deliveryType === 'ship' ? estimatedFee : 0);
 
   async function applyVoucher() {
     const code = voucher.trim();
@@ -72,18 +131,18 @@ export default function CheckoutModal({ checkoutModalRef, checkoutCodeRef, handl
               </div>
               <div className="mb-2">
                 <label className="form-label small fw-medium">Nhận hàng</label>
-                <div className="d-flex gap-3">
+                  <div className="d-flex gap-3">
                   <div className="form-check">
                     <input className="form-check-input" type="radio" name="deliveryType" value="pickup" defaultChecked onChange={e => {
+                      setDeliveryType('pickup');
                       document.getElementById('addressGroup').style.display = 'none';
-                      document.getElementById('customerAddress').required = false;
                     }} />
                     <label className="form-check-label small">Tại quán</label>
                   </div>
                   <div className="form-check">
                     <input className="form-check-input" type="radio" name="deliveryType" value="ship" onChange={e => {
+                      setDeliveryType('ship');
                       document.getElementById('addressGroup').style.display = 'block';
-                      document.getElementById('customerAddress').required = true;
                     }} />
                     <label className="form-check-label small">Giao hàng</label>
                   </div>
@@ -91,7 +150,7 @@ export default function CheckoutModal({ checkoutModalRef, checkoutCodeRef, handl
               </div>
               <div className="mb-2" id="addressGroup" style={{display:'none'}}>
                 <label className="form-label small fw-medium">Địa chỉ <span className="text-danger">*</span></label>
-                <input type="text" className="form-control form-control-sm" name="customerAddress" id="customerAddress" />
+                <AddressAutocomplete name="customerAddress" required={false} placeholder="Nhập địa chỉ giao hàng..." onCoordinate={handleAddressCoordinate} />
               </div>
               <div className="mb-2">
                 <label className="form-label small fw-medium">Thanh toán</label>
@@ -130,6 +189,17 @@ export default function CheckoutModal({ checkoutModalRef, checkoutCodeRef, handl
                 <span>Tạm tính:</span>
                 <span>{fmtPrice(cartTotal)}</span>
               </div>
+              {deliveryType === 'ship' && distanceKm !== null && (
+                <div className="d-flex justify-content-between mb-1 small">
+                  <span>Phí giao hàng {distanceKm > 0 && <span className="text-muted">(~{distanceKm}km)</span>}:</span>
+                  <span>{fmtPrice(estimatedFee)}</span>
+                </div>
+              )}
+              {deliveryType === 'ship' && distanceKm === null && (
+                <div className="mb-1 small text-muted">
+                  <i className="bi bi-info-circle"></i> Chọn địa chỉ từ gợi ý để tính phí ship
+                </div>
+              )}
               {discount > 0 && (
                 <div className="d-flex justify-content-between mb-1 small text-success">
                   <span>Giảm giá:</span>
@@ -138,7 +208,7 @@ export default function CheckoutModal({ checkoutModalRef, checkoutCodeRef, handl
               )}
               <div className="d-flex justify-content-between fw-bold">
                 <span>Tổng cộng:</span>
-                <span className="text-brand">{fmtPrice(cartTotal - discount)}</span>
+                <span className="text-brand">{fmtPrice(finalTotal)}</span>
               </div>
             </div>
             <div className="modal-footer">

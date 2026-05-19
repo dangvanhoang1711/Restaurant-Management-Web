@@ -64,13 +64,30 @@ export default function SettingsTab() {
                 <label className="form-label small fw-medium">Địa chỉ</label>
                 <input type="text" className="form-control" name="shop_address" defaultValue={settings.shop_address || ''} />
               </div>
-              <div className="col-md-2">
-                <label className="form-label small fw-medium">Phí ship (VNĐ)</label>
-                <input type="number" className="form-control" name="delivery_fee" defaultValue={settings.delivery_fee || 0} min="0" />
+              <div className="col-md-3">
+                <label className="form-label small fw-medium">Vĩ độ quán</label>
+                <input type="text" className="form-control" name="restaurant_lat" defaultValue={settings.restaurant_lat || '16.4663130'} />
+              </div>
+              <div className="col-md-3">
+                <label className="form-label small fw-medium">Kinh độ quán</label>
+                <input type="text" className="form-control" name="restaurant_lng" defaultValue={settings.restaurant_lng || '107.5996701'} />
               </div>
               <div className="col-md-2">
-                <label className="form-label small fw-medium">Bán kính (km)</label>
-                <input type="number" className="form-control" name="delivery_radius" defaultValue={settings.delivery_radius || 5} min="0" />
+                <label className="form-label small fw-medium">Số km cơ bản</label>
+                <input type="number" className="form-control" name="delivery_base_km" defaultValue={settings.delivery_base_km || 3} min="0" step="0.5" />
+              </div>
+              <div className="col-md-2">
+                <label className="form-label small fw-medium">Phí cơ bản (₫)</label>
+                <input type="number" className="form-control" name="delivery_base_fee" defaultValue={settings.delivery_base_fee || 12000} min="0" />
+              </div>
+              <div className="col-md-2">
+                <label className="form-label small fw-medium">Phí thêm/km (₫)</label>
+                <input type="number" className="form-control" name="delivery_extra_fee" defaultValue={settings.delivery_extra_fee || 3000} min="0" />
+              </div>
+              <div className="col-12">
+                <small className="text-muted">
+                  <i className="bi bi-info-circle"></i> Phí ship = {settings.delivery_base_fee || 12000}₫ cho {settings.delivery_base_km || 3}km đầu, sau đó +{settings.delivery_extra_fee || 3000}₫/km
+                </small>
               </div>
             </div>
 

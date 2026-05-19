@@ -101,6 +101,11 @@ async function initDatabase() {
     ['shop_hours', '09:00 - 22:00'],
     ['delivery_fee', '0'],
     ['delivery_radius', '5'],
+    ['restaurant_lat', '16.4663130'],
+    ['restaurant_lng', '107.5996701'],
+    ['delivery_base_km', '3'],
+    ['delivery_base_fee', '12000'],
+    ['delivery_extra_fee', '3000'],
   ];
   for (const [k, v] of defaults) {
     await conn.query('INSERT IGNORE INTO settings (setting_key, setting_value) VALUES (?, ?)', [k, v]);

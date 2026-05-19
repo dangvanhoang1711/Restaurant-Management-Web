@@ -44,7 +44,34 @@ router.post('/', async (req, res) => {
       }
     }
 
-    const total = subtotal - discount;
+    let deliveryFee = 0;
+    if (deliveryType === 'ship' && address) {
+      try {
+        const [sRows] = await conn.execute("SELECT setting_key, setting_value FROM settings WHERE setting_key IN ('restaurant_lat','restaurant_lng','delivery_base_km','delivery_base_fee','delivery_extra_fee')");
+        const s = {};
+        for (const r of sRows) s[r.setting_key] = r.setting_value;
+        const rLat = parseFloat(s.restaurant_lat) || 16.4663130;
+        const rLng = parseFloat(s.restaurant_lng) || 107.5996701;
+        const baseKm = parseInt(s.delivery_base_km) || 3;
+        const baseFee = parseInt(s.delivery_base_fee) || 12000;
+        const extraFee = parseInt(s.delivery_extra_fee) || 3000;
+
+        const geo = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=vn`, {
+          headers: { 'User-Agent': 'QuanAnNgon/1.0' }
+        }).then(r => r.json());
+        if (Array.isArray(geo) && geo.length > 0) {
+          const dLat = (parseFloat(geo[0].lat) - rLat) * Math.PI / 180;
+          const dLng = (parseFloat(geo[0].lon) - rLng) * Math.PI / 180;
+          const a = Math.sin(dLat / 2) ** 2 + Math.cos(rLat * Math.PI / 180) * Math.cos(parseFloat(geo[0].lat) * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+          const dist = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          deliveryFee = dist <= baseKm ? baseFee : baseFee + Math.ceil(dist - baseKm) * extraFee;
+        }
+      } catch (err) {
+        console.error('Delivery fee calc error:', err);
+      }
+    }
+
+    const total = subtotal - discount + deliveryFee;
 
     let orderCode = clientCode || '';
     let attempts = 0;
@@ -306,15 +333,27 @@ router.get('/', authMiddleware, async (req, res) => {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
     const offset = (page - 1) * limit;
     const statusFilter = req.query.status;
+    const searchTerm = req.query.search;
 
     let whereClause = '';
     let params = [];
+    const conditions = [];
+
     if (statusFilter) {
       const statuses = statusFilter.split(',').map(s => s.trim()).filter(Boolean);
       if (statuses.length > 0) {
-        whereClause = 'WHERE status IN (' + statuses.map(() => '?').join(',') + ')';
-        params = statuses;
+        conditions.push('status IN (' + statuses.map(() => '?').join(',') + ')');
+        params.push(...statuses);
       }
+    }
+
+    if (searchTerm) {
+      conditions.push('(customer_name LIKE ? OR customer_phone LIKE ?)');
+      params.push(`%${searchTerm}%`, `%${searchTerm}%`);
+    }
+
+    if (conditions.length > 0) {
+      whereClause = 'WHERE ' + conditions.join(' AND ');
     }
 
     const [countResult] = await pool.execute(

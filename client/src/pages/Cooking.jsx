@@ -28,14 +28,32 @@ export default function Cooking() {
     const t = setInterval(load, 10000);
     const token = localStorage.getItem('admin_token');
     let es = null;
-    if (window.EventSource && token) {
+    let reconnectTimer = null;
+    let reconnectAttempts = 0;
+
+    function connectSSE() {
+      if (!window.EventSource || !token) return;
+      es?.close();
       es = new EventSource(`${API}/orders/stream?token=${token}`);
+
       es.addEventListener('order:created', () => { playNewOrderSound(); load(); });
       es.addEventListener('order:updated', load);
+
+      es.onerror = () => {
+        es?.close();
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+        reconnectAttempts++;
+        reconnectTimer = setTimeout(connectSSE, delay);
+      };
+
+      es.addEventListener('connected', () => { reconnectAttempts = 0; });
     }
+
+    connectSSE();
+
     function onClick() { initNotificationSound(); document.removeEventListener('click', onClick); }
     document.addEventListener('click', onClick);
-    return () => { clearInterval(t); es?.close(); document.removeEventListener('click', onClick); };
+    return () => { clearInterval(t); es?.close(); clearTimeout(reconnectTimer); document.removeEventListener('click', onClick); };
   }, []);
 
   function updateStatus(id, status) {

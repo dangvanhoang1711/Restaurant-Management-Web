@@ -111,7 +111,7 @@ router.get('/toppings', async (req, res) => {
   }
 });
 
-router.post('/toppings', async (req, res) => {
+router.post('/toppings', authMiddleware, async (req, res) => {
   const { name, price } = req.body;
   if (!name || !price) return res.status(400).json({ success: false, message: 'Thiếu tên hoặc giá' });
   try {
@@ -123,7 +123,7 @@ router.post('/toppings', async (req, res) => {
   }
 });
 
-router.put('/toppings/:id', async (req, res) => {
+router.put('/toppings/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { name, price } = req.body;
   try {
@@ -135,7 +135,7 @@ router.put('/toppings/:id', async (req, res) => {
   }
 });
 
-router.delete('/toppings/:id', async (req, res) => {
+router.delete('/toppings/:id', authMiddleware, async (req, res) => {
   const { id } = req.params;
   try {
     await pool.execute('DELETE FROM toppings WHERE id = ?', [id]);
@@ -150,7 +150,11 @@ router.get('/:id/toppings', async (req, res) => {
   const { id } = req.params;
   try {
     const [rows] = await pool.execute(
-      `SELECT id, name, price FROM menu_items WHERE category_id = 4 ORDER BY id`
+      `SELECT m.id, m.name, m.price
+       FROM menu_items m
+       JOIN categories c ON m.category_id = c.id
+       WHERE c.slug = 'topping'
+       ORDER BY m.id`
     );
     res.json({ success: true, data: rows });
   } catch (err) {

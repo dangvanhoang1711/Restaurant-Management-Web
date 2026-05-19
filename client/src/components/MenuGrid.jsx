@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { fmtPrice, fetchCategories } from '../utils';
+import { SkeletonCard } from './Skeleton';
 
-export default function MenuGrid({ items, category, onItemClick }) {
+export default function MenuGrid({ items, loading, category, onItemClick }) {
   const [catMap, setCatMap] = useState({});
 
   useEffect(() => {
@@ -18,7 +19,13 @@ export default function MenuGrid({ items, category, onItemClick }) {
         {category === 'all' ? '🍽️ Thực đơn' : catMap[category] || 'Thực đơn'}
       </h5>
       <div className="row g-3" id="menuGrid">
-        {items.length === 0 ? (
+        {loading ? (
+          Array.from({ length: 8 }).map((_, i) => (
+            <div className="col-lg-3 col-md-4 col-6" key={'skeleton-' + i}>
+              <SkeletonCard />
+            </div>
+          ))
+        ) : items.length === 0 ? (
           <div className="col-12 text-center py-5 text-muted">
             <i className="bi bi-emoji-frown fs-1"></i>
             <p className="mt-2">Không tìm thấy món nào</p>
