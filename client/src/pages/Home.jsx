@@ -51,7 +51,7 @@ export default function Home() {
 
   const foodItems = allItems
     .filter(i => i.category !== 'topping' && i.category !== 'douong')
-    .filter(i => category === 'all' || category === 'douong' || i.category === category)
+    .filter(i => category === 'all' || i.category === category)
     .filter(i => !search || i.name.toLowerCase().includes(search.toLowerCase()));
 
   const drinkItems = allItems
