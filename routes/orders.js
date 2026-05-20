@@ -382,13 +382,13 @@ router.get('/', authMiddleware, async (req, res) => {
       whereClause = 'WHERE ' + conditions.join(' AND ');
     }
 
-    const [countResult] = await pool.execute(
+    const [countResult] = await pool.query(
       'SELECT COUNT(*) AS total FROM orders ' + whereClause,
       params
     );
     const total = Number(countResult[0].total);
 
-    const [rows] = await pool.execute(
+    const [rows] = await pool.query(
       `SELECT id, order_code, customer_name, customer_phone, delivery_type, address,
               note, payment_method, payment_status, total, status, created_at
        FROM orders ${whereClause} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
@@ -434,6 +434,25 @@ router.get('/stream', authMiddleware, (req, res) => {
     emitter.off('order:created', onCreated);
     emitter.off('order:updated', onUpdated);
   });
+});
+
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [orders] = await pool.query(
+      `SELECT id, order_code, customer_name, customer_phone, delivery_type, address,
+              note, payment_method, payment_status, total, discount, voucher_code, status, created_at
+       FROM orders WHERE id = ?`, [id]
+    );
+    if (!orders.length) return res.status(404).json({ success: false, message: 'Không tìm thấy đơn' });
+    const [items] = await pool.query(
+      'SELECT item_name, item_price, quantity FROM order_items WHERE order_id = ?', [id]
+    );
+    res.json({ success: true, data: { ...orders[0], items } });
+  } catch (err) {
+    console.error('Get order detail error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi server' });
+  }
 });
 
 module.exports = router;
