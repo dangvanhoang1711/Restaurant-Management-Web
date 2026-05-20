@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
       params.push(category);
     }
     query += ' ORDER BY m.id';
-    const [rows] = await pool.execute(query, params);
+    const [rows] = await pool.query(query, params);
     res.json({ success: true, data: rows });
   } catch (err) {
     console.error('Menu error:', err);

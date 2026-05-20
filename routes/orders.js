@@ -190,7 +190,7 @@ router.get('/track', async (req, res) => {
   try {
     const { phone } = req.query;
     if (!phone) return res.status(400).json({ success: false, message: 'Thiếu số điện thoại' });
-    const [rows] = await pool.execute(
+    const [rows] = await pool.query(
       `SELECT id, order_code, customer_name, customer_phone, delivery_type, address,
               note, payment_method, payment_status, total, status, created_at
        FROM orders WHERE customer_phone = ?
@@ -206,18 +206,18 @@ router.get('/track', async (req, res) => {
 
 router.get('/stats', authMiddleware, async (req, res) => {
   try {
-    const [today] = await pool.execute(
+    const [today] = await pool.query(
       `SELECT COALESCE(SUM(CASE WHEN status != 'cancelled' THEN total ELSE 0 END),0) AS revenue,
               COUNT(*) AS total
        FROM orders WHERE DATE(created_at) = CURDATE()`
     );
-    const [pending] = await pool.execute(
+    const [pending] = await pool.query(
       `SELECT COUNT(*) AS count FROM orders WHERE status = 'pending'`
     );
-    const [preparing] = await pool.execute(
+    const [preparing] = await pool.query(
       `SELECT COUNT(*) AS count FROM orders WHERE status = 'preparing'`
     );
-    const [payment] = await pool.execute(
+    const [payment] = await pool.query(
       `SELECT payment_method, COUNT(*) AS count, COALESCE(SUM(total),0) AS total
        FROM orders WHERE DATE(created_at) = CURDATE() AND status != 'cancelled'
        GROUP BY payment_method`
@@ -247,7 +247,7 @@ router.get('/revenue', authMiddleware, async (req, res) => {
   try {
     const days = Math.min(Math.max(parseInt(req.query.days) || 7, 1), 90);
     const interval = days - 1;
-    const [rows] = await pool.execute(`
+    const [rows] = await pool.query(`
       SELECT DATE(created_at) AS date, COUNT(*) AS orders, COALESCE(SUM(total),0) AS revenue
       FROM orders
       WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
@@ -291,7 +291,7 @@ router.get('/top-items', authMiddleware, async (req, res) => {
   try {
     const days = Math.min(Math.max(parseInt(req.query.days) || 7, 1), 90);
     const interval = days - 1;
-    const [rows] = await pool.execute(`
+    const [rows] = await pool.query(`
       SELECT oi.item_name, SUM(oi.quantity) AS qty, SUM(oi.item_price * oi.quantity) AS revenue
       FROM order_items oi
       JOIN orders o ON o.id = oi.order_id
@@ -313,7 +313,7 @@ router.get('/top-customers', authMiddleware, async (req, res) => {
   try {
     const days = Math.min(Math.max(parseInt(req.query.days) || 30, 1), 365);
     const interval = days - 1;
-    const [rows] = await pool.execute(`
+    const [rows] = await pool.query(`
       SELECT customer_name, customer_phone, COUNT(*) AS orders, COALESCE(SUM(total),0) AS total_spent
       FROM orders
       WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
@@ -331,7 +331,7 @@ router.get('/top-customers', authMiddleware, async (req, res) => {
 
 router.get('/export', authMiddleware, async (req, res) => {
   try {
-    const [rows] = await pool.execute(`
+    const [rows] = await pool.query(`
       SELECT o.id, o.order_code, o.customer_name, o.customer_phone, o.delivery_type,
              o.address, o.note, o.payment_method, o.payment_status, o.total, o.status, o.created_at
       FROM orders o ORDER BY o.created_at DESC
@@ -396,7 +396,7 @@ router.get('/', authMiddleware, async (req, res) => {
     );
 
     const data = await Promise.all(rows.map(async (o) => {
-      const [items] = await pool.execute(
+      const [items] = await pool.query(
         'SELECT item_name, item_price, quantity FROM order_items WHERE order_id = ?',
         [o.id]
       );
