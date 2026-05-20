@@ -57,6 +57,12 @@ export default function OrdersTab() {
     return () => { es?.close(); clearTimeout(reconnectTimer); };
   }, [page, filter, pageSize]);
 
+  // Periodic polling fallback — refresh every 15s in case SSE drops
+  useEffect(() => {
+    const interval = setInterval(load, 15000);
+    return () => clearInterval(interval);
+  }, [page, filter, pageSize, search]);
+
   useEffect(() => { const t = setTimeout(load, 300); return () => clearTimeout(t); }, [search]);
 
   const statusMap = { pending: 'Chờ XN', confirmed: 'Đã XN', preparing: 'Đang nấu', completed: 'Xong', cancelled: 'Hủy' };

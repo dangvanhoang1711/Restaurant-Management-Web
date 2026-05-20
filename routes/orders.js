@@ -353,51 +353,6 @@ router.get('/export', authMiddleware, async (req, res) => {
   }
 });
 
-router.get('/stream', authMiddleware, (req, res) => {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-  });
-
-  const onCreated = (data) => {
-    res.write(`event: order:created\ndata: ${JSON.stringify(data)}\n\n`);
-  };
-  const onUpdated = (data) => {
-    res.write(`event: order:updated\ndata: ${JSON.stringify(data)}\n\n`);
-  };
-
-  emitter.on('order:created', onCreated);
-  emitter.on('order:updated', onUpdated);
-
-  res.write('event: connected\ndata: {}\n\n');
-
-  req.on('close', () => {
-    emitter.off('order:created', onCreated);
-    emitter.off('order:updated', onUpdated);
-  });
-});
-
-router.get('/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const [orders] = await pool.execute(
-      `SELECT id, order_code, customer_name, customer_phone, delivery_type, address,
-              note, payment_method, payment_status, total, discount, voucher_code, status, created_at
-       FROM orders WHERE id = ?`, [id]
-    );
-    if (!orders.length) return res.status(404).json({ success: false, message: 'Không tìm thấy đơn' });
-    const [items] = await pool.execute(
-      'SELECT item_name, item_price, quantity FROM order_items WHERE order_id = ?', [id]
-    );
-    res.json({ success: true, data: { ...orders[0], items } });
-  } catch (err) {
-    console.error('Get order detail error:', err);
-    res.status(500).json({ success: false, message: 'Lỗi server' });
-  }
-});
-
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -431,7 +386,7 @@ router.get('/', authMiddleware, async (req, res) => {
       'SELECT COUNT(*) AS total FROM orders ' + whereClause,
       params
     );
-    const total = countResult[0].total;
+    const total = Number(countResult[0].total);
 
     const [rows] = await pool.execute(
       `SELECT id, order_code, customer_name, customer_phone, delivery_type, address,
@@ -453,6 +408,32 @@ router.get('/', authMiddleware, async (req, res) => {
     console.error('Get orders error:', err);
     res.status(500).json({ success: false, message: 'Lỗi server' });
   }
+});
+
+router.get('/stream', authMiddleware, (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+  });
+
+  const onCreated = (data) => {
+    res.write(`event: order:created\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+  const onUpdated = (data) => {
+    res.write(`event: order:updated\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  emitter.on('order:created', onCreated);
+  emitter.on('order:updated', onUpdated);
+
+  res.write('event: connected\ndata: {}\n\n');
+
+  req.on('close', () => {
+    emitter.off('order:created', onCreated);
+    emitter.off('order:updated', onUpdated);
+  });
 });
 
 module.exports = router;

@@ -127,6 +127,12 @@ export default function DashboardTab() {
     return () => { es?.close(); clearTimeout(reconnectTimer); };
   }, []);
 
+  // Periodic polling fallback — refresh every 15s in case SSE drops
+  useEffect(() => {
+    const interval = setInterval(load, 15000);
+    return () => clearInterval(interval);
+  }, [range]);
+
   useEffect(() => { load(); }, [range]);
 
   useEffect(() => {
