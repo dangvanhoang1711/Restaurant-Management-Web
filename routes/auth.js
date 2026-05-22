@@ -40,6 +40,7 @@ async function sendPinEmail(email, pin) {
         body: JSON.stringify({
           personalizations: [{ to: [{ email }] }],
           from: { email: process.env.SMTP_USER || 'noreply@chauloan.com' },
+          reply_to: { email: process.env.ADMIN_EMAIL || process.env.SMTP_USER || 'noreply@chauloan.com' },
           subject: 'Mã PIN đặt lại mật khẩu - Châu Loan',
           content: [{ type: 'text/html', value: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:24px;border:1px solid #eee;border-radius:12px">
             <h2 style="color:#ee4d2d">Châu Loan</h2>
