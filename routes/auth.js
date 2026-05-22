@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
 const pool = require('../db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'quan-an-ngon-secret-key-2026';
@@ -30,29 +29,36 @@ function generatePin() {
 async function sendPinEmail(email, pin) {
   console.log(`[PIN] Mã PIN cho ${email}: ${pin}`);
   try {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT) || 465,
-      secure: true,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-      tls: { rejectUnauthorized: false },
-      family: 4,
-    });
-    await transporter.sendMail({
-      from: `"Châu Loan" <${process.env.SMTP_USER}>`,
-      to: email,
-      subject: 'Mã PIN đặt lại mật khẩu - Châu Loan',
-      html: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:24px;border:1px solid #eee;border-radius:12px">
-        <h2 style="color:#ee4d2d">Châu Loan</h2>
-        <p>Mã PIN để đặt lại mật khẩu của bạn là:</p>
-        <div style="font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:16px;background:#fff0ed;border-radius:8px;color:#ee4d2d">${pin}</div>
-        <p style="color:#999;font-size:13px">Mã có hiệu lực trong 10 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>
-      </div>`,
-    });
-    console.log(`[PIN] Email sent successfully to ${email}`);
+    const apiKey = process.env.SENDGRID_API_KEY;
+    if (apiKey) {
+      const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          personalizations: [{ to: [{ email }] }],
+          from: { email: process.env.SMTP_USER || 'noreply@chauloan.com' },
+          subject: 'Mã PIN đặt lại mật khẩu - Châu Loan',
+          content: [{ type: 'text/html', value: `<div style="font-family:sans-serif;max-width:480px;margin:auto;padding:24px;border:1px solid #eee;border-radius:12px">
+            <h2 style="color:#ee4d2d">Châu Loan</h2>
+            <p>Mã PIN để đặt lại mật khẩu của bạn là:</p>
+            <div style="font-size:32px;font-weight:bold;letter-spacing:8px;text-align:center;padding:16px;background:#fff0ed;border-radius:8px;color:#ee4d2d">${pin}</div>
+            <p style="color:#999;font-size:13px">Mã có hiệu lực trong 10 phút. Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>
+          </div>` }],
+        }),
+      });
+      if (res.ok) {
+        console.log(`[PIN] Email sent successfully to ${email}`);
+      } else {
+        console.error('[PIN] SendGrid error:', res.status, await res.text());
+      }
+    } else {
+      console.log('[PIN] No SENDGRID_API_KEY set. PIN only available in logs.');
+    }
   } catch (err) {
     console.error('[PIN] Failed to send email:', err.message);
-    // PIN is still logged above for testing
   }
 }
 
