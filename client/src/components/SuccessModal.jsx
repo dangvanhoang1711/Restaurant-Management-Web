@@ -4,10 +4,9 @@ export default function SuccessModal({ successModalRef }) {
       <div className="modal-dialog modal-dialog-centered modal-sm">
         <div className="modal-content text-center border-0 shadow">
           <div className="modal-body py-4 px-4">
-            <svg className="success-checkmark" viewBox="0 0 52 52">
-              <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
-              <path className="checkmark-path" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-            </svg>
+            <div className="success-icon-wrap">
+              <i className="bi bi-check-circle-fill success-icon"></i>
+            </div>
             <h5 className="fw-bold mb-1">Đặt hàng thành công!</h5>
             <p className="text-muted small mb-3">Cảm ơn bạn đã đặt hàng. Chúng tôi sẽ chuẩn bị sớm nhất!</p>
             <div id="orderSummary" className="text-start bg-brand-subtle rounded p-3 small mb-3 border border-brand border-opacity-10"></div>

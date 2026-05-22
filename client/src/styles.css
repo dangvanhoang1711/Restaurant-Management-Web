@@ -448,32 +448,24 @@ h5, h6, .h5, .h6 { font-weight: 700; }
 }
 
 /* ─── Success Checkmark ─── */
-.success-checkmark {
-  width: 60px;
-  height: 60px;
+.success-icon-wrap {
   margin: 0 auto 12px;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.checkmark-circle {
-  stroke: #10b981;
-  stroke-width: 2;
-  stroke-dasharray: 166;
-  stroke-dashoffset: 166;
-  animation: checkmarkCircle 0.6s ease-in-out forwards;
+.success-icon {
+  font-size: 64px;
+  line-height: 1;
+  color: #10b981;
+  animation: successPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
-.checkmark-path {
-  stroke: #10b981;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 48;
-  stroke-dashoffset: 48;
-  animation: checkmarkPath 0.4s 0.6s ease-in-out forwards;
-}
-@keyframes checkmarkCircle {
-  to { stroke-dashoffset: 0; }
-}
-@keyframes checkmarkPath {
-  to { stroke-dashoffset: 0; }
+@keyframes successPop {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* ─── Stat Card ─── */
