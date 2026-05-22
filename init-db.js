@@ -168,18 +168,17 @@ async function initDatabase() {
   const catBanh = await ensureCat('Bánh', 'banhbao');
   const catGa = await ensureCat('Gà', 'ga');
 
-  async function seedMenu(catId, items) {
-    for (const item of items) {
-      const [exist] = await conn.query('SELECT id FROM menu_items WHERE name = ? AND category_id = ?', [item[0], catId]);
-      if (!exist.length) {
+  const [menuCount] = await conn.query('SELECT COUNT(*) AS cnt FROM menu_items');
+  const hasData = Number(menuCount[0].cnt) > 0;
+
+  if (!hasData) {
+    async function seedMenu(catId, items) {
+      for (const item of items) {
         await conn.query('INSERT INTO menu_items (category_id, name, price, description, image_bg) VALUES (?,?,?,?,?)', [catId, ...item]);
-      } else {
-        await conn.query('UPDATE menu_items SET price = ?, description = ?, image_bg = ? WHERE id = ?', [item[1], item[2], item[3], exist[0].id]);
       }
     }
-  }
 
-  await seedMenu(catMi, [
+    await seedMenu(catMi, [
     ['Mì Vịt Tiềm', 75000, 'Mì vịt tiềm đậm vị phương Bắc', 'url(/images/1778931053793-1t6ak1.jpg) center/cover'],
     ['Mì Xào Giòn', 65000, 'Mì xào giòn thơm ngon', 'url(/images/1779015088090-oy1d3k.png) center/cover'],
   ]);
@@ -209,6 +208,7 @@ async function initDatabase() {
   await seedMenu(catBanh, [
     ['Bánh Mì', 15000, 'Bánh mì Việt Nam', 'linear-gradient(135deg,#ffecd2,#fcb69f)'],
   ]);
+  }
 
   // Seed vouchers
   const vouchers = [
@@ -232,8 +232,6 @@ async function initDatabase() {
     await conn.query('INSERT INTO admin_users (username, password, email) VALUES (?,?,?)', ['admin', hash, process.env.ADMIN_EMAIL || '']);
     console.log('  \u2713 Đã tạo tài khoản admin mặc định (admin / admin123)');
   }
-
-  await conn.query(`DELETE m1 FROM menu_items m1 INNER JOIN menu_items m2 WHERE m1.id > m2.id AND m1.name = m2.name AND m1.category_id = m2.category_id`);
 
   console.log('  \u2713 Database "' + DB_NAME + '" đã sẵn sàng');
 }
